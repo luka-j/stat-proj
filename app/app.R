@@ -9,7 +9,7 @@ library(DBI)
 library(RPostgreSQL)
 library(stringr)
 
-dbConn <- dbConnect(RPostgreSQL::PostgreSQL(), dbname = "upisdb_lite", host="localhost", port=5432,
+dbConn <- dbConnect(RPostgreSQL::PostgreSQL(), dbname = "upisdb_lite", host=Sys.getenv("PG_HOST"), port=5432,
                     user=Sys.getenv("PG_USER"), password=Sys.getenv("PG_PASS"))
 
 source("app/dbFunctions.R")
@@ -40,7 +40,15 @@ server <- function(input, output, session) {
         }
         colnames(result) <- c("x", "y", "color", "facet")
       } else {
-        result <- dbGetColumn(c(input$var_x, input$var_y), input$base_filter)
+        if(str_match(input$var_x, "2...") == str_match(input$var_y, "2...")) {
+          result <- dbGetColumn(c(input$var_x, input$var_y), input$base_filter)
+        } else {
+          colx <- dbGetColumn(input$var_x, input$base_filter)[[1]]
+          coly <- dbGetColumn(input$var_y, input$base_filter)[[1]]
+          length(colx) <- max(length(colx), length(coly))
+          length(coly) <- max(length(colx), length(coly))
+          result <- data.frame(x=colx, y=coly)
+        }
         colnames(result) <- c("x", "y")
       }
       if(input$x_standardize) result$x %<>% standardize()
@@ -88,6 +96,19 @@ server <- function(input, output, session) {
       xlab(input$var_x) + ylab(input$var_y)
   })
   output$facet.ui <- renderUI(plotOutput("facet", height=input$plot_height))
+
+  output$distributions <- renderPlot({
+    data <- svef()
+    ggplot(data) + geom_freqpoly(aes(x, color=input$var_x), binwidth=input$distributions_binwidth) +
+      geom_freqpoly(aes(y, color=input$var_y), binwidth=input$distributions_binwidth) + scale_color_discrete(name = "Varijabla")
+  })
+  output$distributions.ui <- renderUI(plotOutput("distributions", height = input$plot_height))
+
+  output$ks_text <- renderText({
+    data <- svef()
+    test <- ks.test(data$x, data$y)
+    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
+  })
 
   #
   # ---------------------------------------
@@ -200,6 +221,16 @@ ui <- fluidPage(
                            selectInput("facet_filter_var", "Prikaži samo ako je", choices = allCharacterColumns(), selected = "smerovi2020.podrucje"),
                            selectInput("facet_filter_val", "jedan od", choices = dbColumnValues("smerovi2020.podrucje"), selected = "gimnazija", multiple = TRUE),
                            selectInput("facet_col", "Boja", choices = allCharacterColumns(), selected = "smerovi2020.podrucje")
+                         ))
+                       )
+              ),
+
+              tabPanel("KS Test", value="ks",
+                       fluidRow(
+                         column(9, uiOutput("distributions.ui", height = 600)),
+                         column(3, wellPanel(
+                           sliderInput("distributions_binwidth", "Binwidth", min = 0.01, max = 5, step=0.01, value = 0.33),
+                           htmlOutput("ks_text")
                          ))
                        )
               ),
