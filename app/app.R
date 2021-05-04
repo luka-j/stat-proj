@@ -110,6 +110,23 @@ server <- function(input, output, session) {
     paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
   })
 
+  output$distributions1s <- renderPlot({
+    data <- svef()
+    f <- str_replace(input$ks1s_dist, "p", "r")
+    args <- list(count(data)[[1]], input$ks1s_param1, input$ks1s_param2)
+    length(args) <- length(formals(f))
+    dist <- data.frame(x=do.call(f, args))
+    ggplot(data) + geom_freqpoly(aes(x, color=input$var_x), binwidth=input$distributions1s_binwidth) +
+      geom_freqpoly(aes(x, color=input$ks1s_dist), data=dist, binwidth=input$distributions_binwidth) + scale_color_discrete(name = "Varijabla")
+  })
+  output$distributions1s.ui <- renderUI(plotOutput("distributions1s", height = input$plot_height))
+
+  output$ks1s_text <- renderText({
+    data <- svef()
+    test <- ks.test(data$x, input$ks1s_dist, input$ks1s_param1, input$ks1s_param2)
+    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
+  })
+
   #
   # ---------------------------------------
   # Tab 3: Linear model
@@ -138,6 +155,8 @@ server <- function(input, output, session) {
       xlab(input$var_x) + ylab(input$var_y)
   })
   output$model_regline.ui <- renderUI(plotOutput("model_regline", height=input$plot_height))
+
+  output$regression_table <- renderTable(bind_cols(Values=c("Intercept", "x"), summary(model())$coefficients))
 
   output$model_freqpoly <- renderPlot({
     data <- svef() %>% add_residuals(model())
@@ -226,29 +245,43 @@ ui <- fluidPage(
               ),
 
               tabPanel("KS Test", value="ks",
+                       h3("Dva uzorka"),
                        fluidRow(
                          column(9, uiOutput("distributions.ui", height = 600)),
                          column(3, wellPanel(
                            sliderInput("distributions_binwidth", "Binwidth", min = 0.01, max = 5, step=0.01, value = 0.33),
                            htmlOutput("ks_text")
                          ))
+                       ),
+
+                       h3("Jedan uzorak"),
+                       fluidRow(
+                         column(9, uiOutput("distributions1s.ui", height = 600)),
+                         column(3, wellPanel(
+                           textInput("ks1s_dist", "Distribucija", value = "pnorm"),
+                           sliderInput("ks1s_param1", "Parametar 1", min=0, max = 15, step=0.1, value = 2.5),
+                           sliderInput("ks1s_param2", "Parametar 2", min=0, max = 15, step=0.1, value = 1),
+                           sliderInput("distributions1s_binwidth", "Binwidth", min = 0.01, max = 5, step=0.01, value = 0.33),
+                           htmlOutput("ks1s_text")
+                         ))
                        )
               ),
 
               tabPanel("Linearna regresija", value="models",
 
-                       h3("Regression line"),
+                       h3("Regresiona linija"),
 
                        fluidRow(
                          column(9, uiOutput("model_regline.ui")),
                          column(3,  wellPanel(
                            sliderInput("model_rl_alpha", "Transparentnost (alpha):",
                                        min = 0, max = 1, value = 0.04),
-                           checkboxInput("model_rl_jitter", "Jitter", value = TRUE)
+                           checkboxInput("model_rl_jitter", "Jitter", value = TRUE),
+                           tableOutput("regression_table")
                          ))
                        ),
 
-                       h3("Residual count"),
+                       h3("Broj reziduala"),
 
                        fluidRow(
                          column(9, uiOutput("model_freqpoly.ui")),
@@ -258,7 +291,7 @@ ui <- fluidPage(
                          ))
                        ),
 
-                       h3("Residual distribution"),
+                       h3("Distribucija reziduala"),
 
                        fluidRow(
                          column(9, uiOutput("model_resid.ui")),
