@@ -112,7 +112,7 @@ server <- function(input, output, session) {
 
   output$distributions1s <- renderPlot({
     data <- svef()
-    f <- str_replace(input$ks1s_dist, "p", "r")
+    f <- paste0("r", input$ks1s_dist)
     args <- list(count(data)[[1]], input$ks1s_param1, input$ks1s_param2)
     length(args) <- length(formals(f))
     dist <- data.frame(x=do.call(f, args))
@@ -123,7 +123,7 @@ server <- function(input, output, session) {
 
   output$ks1s_text <- renderText({
     data <- svef()
-    test <- ks.test(data$x, input$ks1s_dist, input$ks1s_param1, input$ks1s_param2)
+    test <- ks.test(data$x, paste0("p", input$ks1s_dist), input$ks1s_param1, input$ks1s_param2)
     paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
   })
 
@@ -245,24 +245,24 @@ ui <- fluidPage(
               ),
 
               tabPanel("KS Test", value="ks",
+                       h3("Jedan uzorak"),
+                       fluidRow(
+                         column(9, uiOutput("distributions1s.ui", height = 600)),
+                         column(3, wellPanel(
+                           textInput("ks1s_dist", "Distribucija", value = "norm"),
+                           sliderInput("ks1s_param1", "Parametar 1", min=0, max = 15, step=0.1, value = 2.5),
+                           sliderInput("ks1s_param2", "Parametar 2", min=0, max = 15, step=0.1, value = 1),
+                           sliderInput("distributions1s_binwidth", "Binwidth", min = 0.01, max = 5, step=0.01, value = 0.33),
+                           htmlOutput("ks1s_text")
+                         ))
+                       ),
+
                        h3("Dva uzorka"),
                        fluidRow(
                          column(9, uiOutput("distributions.ui", height = 600)),
                          column(3, wellPanel(
                            sliderInput("distributions_binwidth", "Binwidth", min = 0.01, max = 5, step=0.01, value = 0.33),
                            htmlOutput("ks_text")
-                         ))
-                       ),
-
-                       h3("Jedan uzorak"),
-                       fluidRow(
-                         column(9, uiOutput("distributions1s.ui", height = 600)),
-                         column(3, wellPanel(
-                           textInput("ks1s_dist", "Distribucija", value = "pnorm"),
-                           sliderInput("ks1s_param1", "Parametar 1", min=0, max = 15, step=0.1, value = 2.5),
-                           sliderInput("ks1s_param2", "Parametar 2", min=0, max = 15, step=0.1, value = 1),
-                           sliderInput("distributions1s_binwidth", "Binwidth", min = 0.01, max = 5, step=0.01, value = 0.33),
-                           htmlOutput("ks1s_text")
                          ))
                        )
               ),

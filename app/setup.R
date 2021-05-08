@@ -1,2 +1,2 @@
 # install libpq-dev (Debian-based) or postgresql-devel (RHEL/openSUSE based) or postgresql-libs (Arch based)
-install.packages(c("shiny", "RPostgreSQL", "dplyr", "magrittr", "ggplot2", "modelr", "purrr", "R.utils"))
+install.packages(c("shiny", "RPostgreSQL", "dplyr", "magrittr", "ggplot2", "modelr", "purrr"))
