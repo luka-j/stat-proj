@@ -310,4 +310,4 @@ ui <- fluidPage(
 #
 # Finally, run the app!
 #
-shinyApp(ui = ui, server = server, options = c(port=4000))
+shinyApp(ui = ui, server = server, options = list(host="0.0.0.0", port=4000))
