@@ -12,7 +12,7 @@ library(stringr)
 dbConn <- dbConnect(RPostgreSQL::PostgreSQL(), dbname = "upisdb_lite", host=Sys.getenv("PG_HOST"), port=5432,
                     user=Sys.getenv("PG_USER"), password=Sys.getenv("PG_PASS"))
 
-source("app/dbFunctions.R")
+source("dbFunctions.R")
 
 
 standardize <- function(var, m=0, stdev=1) {
@@ -310,4 +310,4 @@ ui <- fluidPage(
 #
 # Finally, run the app!
 #
-shinyApp(ui = ui, server = server, options = list(host="0.0.0.0", port=4000))
+shinyApp(ui = ui, server = server, options = list(host="0.0.0.0", port=4000, display.mode="showcase"))
