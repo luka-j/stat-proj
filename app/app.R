@@ -19,12 +19,6 @@ standardize <- function(var, m=0, stdev=1) {
   m+stdev*(var-mean(var))/(sd(var))
 }
 
-#
-# =======================================================
-# STEP 2: DOING STUFF
-# =======================================================
-#
-
 server <- function(input, output, session) {
 
   svef <- reactive({
@@ -127,12 +121,6 @@ server <- function(input, output, session) {
     paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
   })
 
-  #
-  # ---------------------------------------
-  # Tab 3: Linear model
-  # ---------------------------------------
-  #
-
   # This is where model is built
   model <- reactive({
     if(input$tabs == "models") { # We'll build a model only if tab 3 is showing
@@ -176,14 +164,6 @@ server <- function(input, output, session) {
   })
   output$model_resid.ui <- renderUI(plotOutput("model_resid", height=input$plot_height))
 
-
-  #
-  # ---------------------------------------
-  # Misc: observers
-  # These get fired whenever something happens that changes variables they use
-  # ---------------------------------------
-  #
-
   observe({
     join_choices <- dbColumnValues(input$facet_filter_var)
     updateSelectInput(session, "facet_filter_val", choices = join_choices, selected = join_choices[1])
@@ -199,12 +179,6 @@ server <- function(input, output, session) {
   })
 }
 
-
-#
-# =======================================================
-# STEP 3: LAYING EVERYTHING OUT
-# =======================================================
-#
 ui <- fluidPage(
 
   # Application title
@@ -307,7 +281,4 @@ ui <- fluidPage(
   sliderInput("plot_height", "Visina plotova", 100, 1600, 400)
 )
 
-#
-# Finally, run the app!
-#
 shinyApp(ui = ui, server = server, options = list(host="0.0.0.0", port=4000, display.mode="showcase"))
