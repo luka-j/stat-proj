@@ -1,3 +1,4 @@
 sudo redir :80 0.0.0.0:4000
-R --no-save < app/app.R
+cd app/
+R --no-save < app.R
 
