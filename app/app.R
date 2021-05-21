@@ -101,7 +101,13 @@ server <- function(input, output, session) {
   output$ks_text <- renderText({
     data <- svef()
     test <- ks.test(data$x, data$y)
-    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
+
+    counts <- colSums(!is.na(data))
+    paired.wilcox <- counts[1] == counts[2]
+    wilcox <- wilcox.test(data$x, data$y, paired = paired.wilcox, conf.int = TRUE)
+    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p ", if(test$p.value == 0) "< 1e-6" else paste("=", test$p.value),
+          '<hr style="margin:4px;border-top:1px solid #bbb">W = ', wilcox$statistic[[1]],
+          "<br>p = ", if(test$p.value == 0) "< 1e-6" else paste("=", test$p.value))
   })
 
   output$distributions1s <- renderPlot({
@@ -118,7 +124,7 @@ server <- function(input, output, session) {
   output$ks1s_text <- renderText({
     data <- svef()
     test <- ks.test(data$x, paste0("p", input$ks1s_dist), input$ks1s_param1, input$ks1s_param2)
-    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p =", test$p.value)
+    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p", if(test$p.value == 0) "< 1e-6" else paste("=", test$p.value))
   })
 
   # This is where model is built
