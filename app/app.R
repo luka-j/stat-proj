@@ -80,7 +80,6 @@ server <- function(input, output, session) {
     if(count(data) == 0) return(ggplot(data))
 
     col <- input$facet_col
-    # this is "unused" but we need a way to register it as a reactive dependency
     pos <- if(input$facet_jitter) "jitter" else "identity"
     ggplot(data, aes(x, y, color=color)) + geom_point(alpha=input$facet_alpha, position=pos) +
       facet_grid(rows = "facet") +
@@ -93,9 +92,10 @@ server <- function(input, output, session) {
     data <- svef()
     if(count(data) == 0) return(ggplot(data))
 
-    x_factors <- as.factor(data$x)
-    if(length(x_factors) > 22) {
-      x_factors <- data$x %>% cut(22)
+    if(data$x %>% unique %>% length > input$boxplot_intervals) {
+      x_factors <- data$x %>% cut(input$boxplot_intervals)
+    } else {
+      x_factors <- data$x %>% round(digits = 2) %>% as.factor
     }
     ggplot(data, aes(x_factors, y)) + geom_boxplot(outlier.alpha = input$boxplot_outlier_alpha,
                                                       varwidth = input$boxplot_varwidth) +
@@ -242,6 +242,7 @@ ui <- fluidPage(
                          column(3, wellPanel(
                            sliderInput("boxplot_outlier_alpha", "Transparentnost štrčaka (outlier alpha):",
                                        min = 0, max = 1, value = 0.07),
+                           sliderInput("boxplot_intervals", "Maksimalan broj intervala", min=2, max = 30, step=1, value = 20),
                            checkboxInput("boxplot_varwidth", "Proporcionalna širina", value = TRUE),
                          ))
                        ),
