@@ -81,8 +81,6 @@ server <- function(input, output, session) {
 
     col <- input$facet_col
     # this is "unused" but we need a way to register it as a reactive dependency
-    filt_var <- input$facet_filter_var
-    filt_val <- input$facet_filter_val
     pos <- if(input$facet_jitter) "jitter" else "identity"
     ggplot(data, aes(x, y, color=color)) + geom_point(alpha=input$facet_alpha, position=pos) +
       facet_grid(rows = "facet") +
@@ -90,6 +88,21 @@ server <- function(input, output, session) {
       xlab(input$var_x) + ylab(input$var_y)
   })
   output$facet.ui <- renderUI(plotOutput("facet", height=input$plot_height))
+
+  output$boxplot <- renderPlot({
+    data <- svef()
+    if(count(data) == 0) return(ggplot(data))
+
+    x_factors <- as.factor(data$x)
+    if(length(x_factors) > 22) {
+      x_factors <- data$x %>% cut(22)
+    }
+    ggplot(data, aes(x_factors, y)) + geom_boxplot(outlier.alpha = input$boxplot_outlier_alpha,
+                                                      varwidth = input$boxplot_varwidth) +
+      facet_grid(rows = "facet") + guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+      scale_color_discrete(name=col) + xlab(input$var_x) + ylab(input$var_y)
+  })
+  output$boxplot.ui <- renderUI(plotOutput("boxplot", height=input$plot_height))
 
   output$distributions <- renderPlot({
     data <- svef()
@@ -210,15 +223,35 @@ ui <- fluidPage(
 
   tabsetPanel(id="tabs",
 
-              tabPanel("Tačkasti grafikoni", value="joins",
+              tabPanel("Grafikoni", value="joins",
+                       fluidRow(
+                         wellPanel(style="min-height:110px",
+                           tags$div(class="row-fluid",
+                             tags$div(class="col-sm-6",
+                               selectInput("facet_filter_var", "Odvoji grafikone po", choices = allCharacterColumns(), selected = "smerovi2020.podrucje")
+                             ),
+                             tags$div(class="col-sm-6",
+                               selectInput("facet_filter_val", "za vrednosti", choices = dbColumnValues("smerovi2020.podrucje"), selected = "gimnazija", multiple = TRUE)
+                             )
+                           )
+                         )
+                       ),
+                       h3("Box plot"),
+                       fluidRow(
+                         column(9, uiOutput("boxplot.ui", height = 600)),
+                         column(3, wellPanel(
+                           sliderInput("boxplot_outlier_alpha", "Transparentnost štrčaka (outlier alpha):",
+                                       min = 0, max = 1, value = 0.07),
+                           checkboxInput("boxplot_varwidth", "Proporcionalna širina", value = TRUE),
+                         ))
+                       ),
+                       h3("Scatter plot"),
                        fluidRow(
                          column(9, uiOutput("facet.ui", height = 600)),
                          column(3, wellPanel(
                            sliderInput("facet_alpha", "Transparentnost (alpha):",
                                        min = 0, max = 1, value = 0.07),
                            checkboxInput("facet_jitter", "Jitter", value = TRUE),
-                           selectInput("facet_filter_var", "Prikaži samo ako je", choices = allCharacterColumns(), selected = "smerovi2020.podrucje"),
-                           selectInput("facet_filter_val", "jedan od", choices = dbColumnValues("smerovi2020.podrucje"), selected = "gimnazija", multiple = TRUE),
                            selectInput("facet_col", "Boja", choices = allCharacterColumns(), selected = "smerovi2020.podrucje")
                          ))
                        )
