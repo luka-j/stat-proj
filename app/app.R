@@ -24,7 +24,7 @@ drop.na <- function(data) data[!is.na(data)]
 server <- function(input, output, session) {
 
   svef <- reactive({
-    input$text_size
+    input$text_size  # we want to refresh all plots when this property changes
     tryCatch({
       if(input$tabs == "joins") {
         finalFilter <- if(input$base_filter == "") "true" else input$base_filter
