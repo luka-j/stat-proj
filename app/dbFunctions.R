@@ -1,3 +1,5 @@
+library(magrittr)
+
 allColumns <- function() {
   dbListTables(dbConn) %>% lapply(function(x) paste(x, dbListFields(dbConn, x), sep=".")) %>% unlist()
 }
@@ -29,6 +31,11 @@ dbGetColumn <- function(colName, filter) {
     return(NULL)
   table <- str_split(colName[1], "\\.")[[1]][1]
   query <- paste("SELECT", toString(colName), "FROM", table)
+  year <- str_sub(table, start=-4)
+  filter %<>% str_replace_all("os\\.", paste0("os", year, "."))
+  filter %<>% str_replace_all("smerovi\\.", paste0("smerovi", year, "."))
+  filter %<>% str_replace_all("ucenici\\.", paste0("ucenici", year, "."))
+
   if(str_starts(table, "ucenici")) {
     year <- str_sub(table, -4, -1)
     query <- paste0(query, " JOIN smerovi", year, " ON ", table, ".upisana_id=smerovi", year, ".id JOIN os", year, " ON ",
@@ -37,6 +44,7 @@ dbGetColumn <- function(colName, filter) {
   if(filter != "") {
     query <- paste(query, "WHERE", filter)
   }
+  query %<>% tolower()
   print(paste("Executing query:", query))
   dbGetQuery(dbConn, query)
 }

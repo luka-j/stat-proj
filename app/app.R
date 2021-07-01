@@ -16,12 +16,15 @@ source("dbFunctions.R")
 
 
 standardize <- function(var, m=0, stdev=1) {
-  m+stdev*(var-mean(var))/(sd(var))
+  m+stdev*(var-mean(var, na.rm=TRUE))/(sd(var, na.rm=TRUE))
 }
+
+drop.na <- function(data) data[!is.na(data)]
 
 server <- function(input, output, session) {
 
   svef <- reactive({
+    input$text_size
     tryCatch({
       if(input$tabs == "joins") {
         finalFilter <- if(input$base_filter == "") "true" else input$base_filter
@@ -63,15 +66,17 @@ server <- function(input, output, session) {
 
   output$x_stats_text <- renderText({
     data <- svef()
-    paste("Srednja vrednost:", mean(data$x), "<br>Standardna devijacija:", sd(data$x))
+    paste("Srednja vrednost:", mean(data$x, na.rm = TRUE), "<br>Standardna devijacija:", sd(data$x, na.rm = TRUE))
   })
   output$common_stats_text <- renderText({
     data <- svef()
-    paste("<b>Ukupno tačaka:", count(data), "</b>")
+    count.x <- sum(!is.na(data$x))
+    count.y <- sum(!is.na(data$y))
+    paste("<b>Ukupno tačaka:", count.x, if(count.x != count.y) paste0("/ ", count.y) else "", "</b>")
   })
   output$y_stats_text <- renderText({
     data <- svef()
-    paste("Srednja vrednost:", mean(data$y), "<br>Standardna devijacija:", sd(data$y))
+    paste("Srednja vrednost:", mean(data$y, na.rm = TRUE), "<br>Standardna devijacija:", sd(data$y, na.rm = TRUE))
   })
 
 
@@ -83,8 +88,8 @@ server <- function(input, output, session) {
     pos <- if(input$facet_jitter) "jitter" else "identity"
     ggplot(data, aes(x, y, color=color)) + geom_point(alpha=input$facet_alpha, position=pos) +
       facet_grid(rows = "facet") +
-      guides(colour = guide_legend(override.aes = list(alpha = 1))) + scale_color_discrete(name=col) +
-      xlab(input$var_x) + ylab(input$var_y)
+      guides(colour = guide_legend(override.aes = list(alpha = 1, size = 3))) + scale_color_discrete(name=col) +
+      scale_color_viridis_d(option = "turbo") + xlab(input$var_x) + ylab(input$var_y)
   })
   output$facet.ui <- renderUI(plotOutput("facet", height=input$plot_height))
 
@@ -113,14 +118,14 @@ server <- function(input, output, session) {
 
   output$ks_text <- renderText({
     data <- svef()
-    test <- ks.test(data$x, data$y)
+    test <- ks.test(drop.na(data$x), drop.na(data$y))
 
     counts <- colSums(!is.na(data))
     paired.wilcox <- counts[1] == counts[2]
     wilcox <- wilcox.test(data$x, data$y, paired = paired.wilcox, conf.int = TRUE)
-    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p ", if(test$p.value == 0) "< 1e-6" else paste("=", test$p.value),
+    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p ", if(test$p.value == 0) "< 1e-16" else paste("=", test$p.value),
           '<hr style="margin:4px;border-top:1px solid #bbb">W = ', wilcox$statistic[[1]],
-          "<br>p = ", if(test$p.value == 0) "< 1e-6" else paste("=", test$p.value))
+          "<br>p ", if(test$p.value == 0) "< 1e-16" else paste("=", test$p.value))
   })
 
   output$distributions1s <- renderPlot({
@@ -137,7 +142,7 @@ server <- function(input, output, session) {
   output$ks1s_text <- renderText({
     data <- svef()
     test <- ks.test(data$x, paste0("p", input$ks1s_dist), input$ks1s_param1, input$ks1s_param2)
-    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p", if(test$p.value == 0) "< 1e-6" else paste("=", test$p.value))
+    paste("<b>Statistike</b><br>D =", test$statistic[[1]], "<br>", "p", if(test$p.value == 0) "< 1e-16" else paste("=", test$p.value))
   })
 
   # This is where model is built
@@ -183,9 +188,25 @@ server <- function(input, output, session) {
   })
   output$model_resid.ui <- renderUI(plotOutput("model_resid", height=input$plot_height))
 
+  output$model_diagplots <- renderPlot({
+    model <- model()
+    par(mfrow=c(2,2))
+    textScale <- input$text_size/2
+    plot(model, cex.lab=textScale, cex.axis=textScale-0.2, cex.main=textScale, cex.sub=textScale, cex.id = textScale, cex.caption = textScale)
+  })
+  output$model_diagplots.ui <- renderUI(plotOutput("model_diagplots", height = 2*input$plot_height))
+
   observe({
     join_choices <- dbColumnValues(input$facet_filter_var)
     updateSelectInput(session, "facet_filter_val", choices = join_choices, selected = join_choices[1])
+  })
+
+  observe({
+    textElement <- element_text(size=rel(input$text_size))
+    smallTextElement <- element_text(size=rel(input$text_size-0.3))
+    theme_update(text = textElement, axis.title.x = textElement, axis.title.y = textElement, legend.title = textElement,
+                 legend.text = smallTextElement, axis.text.x = smallTextElement, axis.text.y = smallTextElement,
+                 legend.key.height = unit(input$text_size/80, "npc"), legend.key.width = unit(input$text_size/120, "npc"))
   })
 
   # this triggers every time btn_swap is changed
@@ -258,7 +279,7 @@ ui <- fluidPage(
                        )
               ),
 
-              tabPanel("KS Test", value="ks",
+              tabPanel("Testovi saglasnosti", value="ks",
                        h3("Jedan uzorak"),
                        fluidRow(
                          column(9, uiOutput("distributions1s.ui", height = 600)),
@@ -295,6 +316,11 @@ ui <- fluidPage(
                          ))
                        ),
 
+                       h3("Dijagnostički plotovi"),
+                       fluidRow(
+                         column(12, uiOutput("model_diagplots.ui"))
+                       ),
+
                        h3("Broj reziduala"),
 
                        fluidRow(
@@ -318,7 +344,8 @@ ui <- fluidPage(
               )
   ),
 
-  sliderInput("plot_height", "Visina plotova", 100, 1600, 400)
+  sliderInput("plot_height", "Visina plotova", 100, 1600, 400),
+  sliderInput("text_size", "Veličina teksta", 1, 7, 4, 0.1)
 )
 
 shinyApp(ui = ui, server = server, options = list(host="0.0.0.0", port=4000, display.mode="showcase"))
