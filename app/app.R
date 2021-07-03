@@ -169,6 +169,11 @@ server <- function(input, output, session) {
   output$model_regline.ui <- renderUI(plotOutput("model_regline", height=input$plot_height))
 
   output$regression_table <- renderTable(bind_cols(Values=c("Intercept", "x"), summary(model())$coefficients))
+    
+  output$regression_text <- renderText({
+    summ <- summary(model())
+    paste("R^2 =", summ$r.squared)
+  })
 
   output$model_freqpoly <- renderPlot({
     data <- svef() %>% add_residuals(model())
@@ -312,7 +317,8 @@ ui <- fluidPage(
                            sliderInput("model_rl_alpha", "Transparentnost (alpha):",
                                        min = 0, max = 1, value = 0.04),
                            checkboxInput("model_rl_jitter", "Jitter", value = TRUE),
-                           tableOutput("regression_table")
+                           tableOutput("regression_table"),
+                           htmlOutput("regression_text")
                          ))
                        ),
 
