@@ -222,7 +222,7 @@ server <- function(input, output, session) {
 ui <- fluidPage(
 
   # Application title
-  titlePanel("Statistika projekat"),
+  titlePanel("Upis u srednje škole"),
 
   fluidRow(
     column(5,
