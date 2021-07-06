@@ -135,7 +135,7 @@ server <- function(input, output, session) {
     length(args) <- length(formals(f))
     dist <- data.frame(x=do.call(f, args))
     ggplot(data) + geom_freqpoly(aes(x, color=input$var_x), binwidth=input$distributions1s_binwidth) +
-      geom_freqpoly(aes(x, color=input$ks1s_dist), data=dist, binwidth=input$distributions_binwidth) + scale_color_discrete(name = "Varijabla")
+      geom_freqpoly(aes(x, color=input$ks1s_dist), data=dist, binwidth=input$distributions1s_binwidth) + scale_color_discrete(name = "Varijabla")
   })
   output$distributions1s.ui <- renderUI(plotOutput("distributions1s", height = input$plot_height))
 
