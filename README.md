@@ -1,6 +1,6 @@
 # stat-proj
 
-An interactive dashboard for [Upis data](github.com/luka-j/UpisScraper). 
+An interactive dashboard for [Upis data](https://github.com/luka-j/UpisScraper). 
 
 ## Setup
 R: execute `app/setup.R`
